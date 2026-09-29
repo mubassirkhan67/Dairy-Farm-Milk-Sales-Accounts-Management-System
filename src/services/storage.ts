@@ -1,4 +1,15 @@
-import { DairyDatabase, Shopkeeper, MilkSale, Payment, MilkRate, Animal, AnimalSale, Expense, FarmSettings, User } from '../types';
+import type {
+  DairyDatabase,
+  Shopkeeper,
+  MilkSale,
+  Payment,
+  MilkRate,
+  Animal,
+  AnimalSale,
+  Expense,
+  FarmSettings,
+  User,
+} from '../types/index.ts';
 
 const STORAGE_KEY = 'haji_zafeer_gul_awan_dairy_db_v3';
 

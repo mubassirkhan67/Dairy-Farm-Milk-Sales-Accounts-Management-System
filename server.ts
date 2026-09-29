@@ -1,10 +1,10 @@
-import express, { Request, Response } from 'express';
+import express, { type Request, type Response } from 'express';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 import { getInitialDatabase } from './src/services/storage.ts';
-import { DairyDatabase } from './src/types/index.ts';
+import type { DairyDatabase } from './src/types/index.ts';
 
 dotenv.config();
 
