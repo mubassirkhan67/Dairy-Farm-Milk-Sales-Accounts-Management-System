@@ -1,0 +1,91 @@
+@import "tailwindcss";
+
+@layer utilities {
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* Comprehensive Print Media Rules */
+@media print {
+  @page {
+    margin: 10mm 12mm;
+    size: auto;
+  }
+
+  html, body {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    height: auto !important;
+    min-height: 0 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Reset main background and paddings on print */
+  .min-h-screen, main, #root {
+    background: #ffffff !important;
+    min-height: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  /* Completely hide all UI control zones */
+  .no-print,
+  header,
+  nav,
+  button:not(.allow-print),
+  input[type="month"],
+  input[type="date"],
+  select:not(.allow-print) {
+    display: none !important;
+  }
+
+  /* Show dedicated print-only elements */
+  .print-only {
+    display: block !important;
+  }
+
+  /* Print Container normalization */
+  .print-container {
+    box-shadow: none !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    background: #ffffff !important;
+  }
+
+  /* Table styling preservation */
+  table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+  }
+
+  thead {
+    display: table-header-group !important;
+  }
+
+  tfoot {
+    display: table-footer-group !important;
+  }
+
+  tr {
+    page-break-inside: avoid !important;
+  }
+
+  th, td {
+    border-color: #d1d5db !important;
+  }
+
+  /* Avoid unwanted page breaks */
+  .avoid-break {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+}

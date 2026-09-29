@@ -1,0 +1,54 @@
+{
+  "users": [
+    {
+      "id": "USR-01",
+      "name": "Haji Zafeer Gul Awan (Owner)",
+      "username": "admin",
+      "role": "admin",
+      "created_at": "2026-09-01T08:00:00Z"
+    },
+    {
+      "id": "USR-02",
+      "name": "Farm Supervisor (Employee)",
+      "username": "employee",
+      "role": "employee",
+      "created_at": "2026-09-01T08:00:00Z"
+    }
+  ],
+  "shopkeepers": [
+    {
+      "id": "S001",
+      "shop_name": "Fawad Awan",
+      "owner_name": "Fawad Awan",
+      "phone": "03369106781",
+      "address": "Haji Abad",
+      "opening_balance": 0,
+      "status": "active",
+      "notes": "",
+      "created_at": "2026-09-28T16:25:11.138Z"
+    }
+  ],
+  "milk_sales": [],
+  "payments": [],
+  "milk_rates": [
+    {
+      "id": "RATE-01",
+      "rate": 220,
+      "effective_from": "2026-09-01",
+      "notes": "Current farm gate rate",
+      "created_at": "2026-09-01T00:00:00Z"
+    }
+  ],
+  "animals": [],
+  "animal_sales": [],
+  "expenses": [],
+  "settings": {
+    "farm_name": "Haji Zafeer Gul Awan Dairy Farm",
+    "owner_name": "Haji Zafeer Gul Awan",
+    "phone": "03181906768",
+    "address": "Haji Zafeer Gul Dairy Farm, Katlang Road Mardan",
+    "currency_symbol": "Rs.",
+    "default_unit": "KG"
+  },
+  "version": 3
+}
