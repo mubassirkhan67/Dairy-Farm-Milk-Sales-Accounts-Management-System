@@ -25,7 +25,7 @@ interface AnimalsProps {
 
 export const Animals: React.FC<AnimalsProps> = ({ onOpenSellAnimalModal }) => {
   const { animals, addAnimal, updateAnimal, deleteAnimal, settings } = useDairy();
-  const { can } = useAuth();
+  const { can, requireAdmin } = useAuth();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('all');
@@ -75,61 +75,67 @@ export const Animals: React.FC<AnimalsProps> = ({ onOpenSellAnimalModal }) => {
   }, [animals]);
 
   const handleOpenAdd = () => {
-    const nextCode = `COW-0${animals.length + 1}`;
-    setFormData({
-      animal_code: nextCode,
-      name: '',
-      type: 'Cow',
-      breed: 'Sahiwal',
-      age: '3.5 Years',
-      gender: 'Female',
-      purchase_date: '2026-01-15',
-      purchase_price: 260000,
-      status: 'Active',
-      milk_production: 18,
-      photo: '/src/assets/images/photo_dairy_cow_1790607576400.jpg',
-      notes: '',
+    requireAdmin(() => {
+      const nextCode = `COW-0${animals.length + 1}`;
+      setFormData({
+        animal_code: nextCode,
+        name: '',
+        type: 'Cow',
+        breed: 'Sahiwal',
+        age: '3.5 Years',
+        gender: 'Female',
+        purchase_date: '2026-01-15',
+        purchase_price: 260000,
+        status: 'Active',
+        milk_production: 18,
+        photo: '/src/assets/images/photo_dairy_cow_1790607576400.jpg',
+        notes: '',
+      });
+      setModalMode('add');
     });
-    setModalMode('add');
   };
 
   const handleOpenEdit = (a: Animal) => {
-    setEditingAnimal(a);
-    setFormData({
-      animal_code: a.animal_code,
-      name: a.name,
-      type: a.type,
-      breed: a.breed,
-      age: a.age,
-      gender: a.gender,
-      purchase_date: a.purchase_date,
-      purchase_price: a.purchase_price,
-      status: a.status,
-      milk_production: a.milk_production,
-      photo: a.photo || '',
-      notes: a.notes,
+    requireAdmin(() => {
+      setEditingAnimal(a);
+      setFormData({
+        animal_code: a.animal_code,
+        name: a.name,
+        type: a.type,
+        breed: a.breed,
+        age: a.age,
+        gender: a.gender,
+        purchase_date: a.purchase_date,
+        purchase_price: a.purchase_price,
+        status: a.status,
+        milk_production: a.milk_production,
+        photo: a.photo || '',
+        notes: a.notes,
+      });
+      setModalMode('edit');
     });
-    setModalMode('edit');
   };
 
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name.trim() || !formData.animal_code.trim()) return;
 
-    if (modalMode === 'add') {
-      addAnimal({
-        ...formData,
-        purchase_price: Number(formData.purchase_price) || 0,
-        milk_production: Number(formData.milk_production) || 0,
-      });
-    } else if (modalMode === 'edit' && editingAnimal) {
-      updateAnimal(editingAnimal.id, {
-        ...formData,
-        purchase_price: Number(formData.purchase_price) || 0,
-        milk_production: Number(formData.milk_production) || 0,
-      });
-    }
-    setModalMode(null);
+    requireAdmin(() => {
+      if (modalMode === 'add') {
+        addAnimal({
+          ...formData,
+          purchase_price: Number(formData.purchase_price) || 0,
+          milk_production: Number(formData.milk_production) || 0,
+        });
+      } else if (modalMode === 'edit' && editingAnimal) {
+        updateAnimal(editingAnimal.id, {
+          ...formData,
+          purchase_price: Number(formData.purchase_price) || 0,
+          milk_production: Number(formData.milk_production) || 0,
+        });
+      }
+      setModalMode(null);
+    });
   };
 
   return (
@@ -337,7 +343,7 @@ export const Animals: React.FC<AnimalsProps> = ({ onOpenSellAnimalModal }) => {
               <div className="p-4 pt-2 border-t border-neutral-100 flex items-center justify-between gap-2">
                 {!isSold ? (
                   <button
-                    onClick={() => onOpenSellAnimalModal(animal.id)}
+                    onClick={() => requireAdmin(() => onOpenSellAnimalModal(animal.id))}
                     className="flex-1 py-1.5 px-2 bg-neutral-900 hover:bg-neutral-800 text-white rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
                   >
                     <BadgeDollarSign className="w-3.5 h-3.5 text-emerald-400" />
@@ -357,19 +363,19 @@ export const Animals: React.FC<AnimalsProps> = ({ onOpenSellAnimalModal }) => {
                   >
                     <Edit2 className="w-3.5 h-3.5" />
                   </button>
-                  {can('delete_financial') && (
-                    <button
-                      onClick={() => {
+                  <button
+                    onClick={() => {
+                      requireAdmin(() => {
                         if (window.confirm(`Delete animal record ${animal.animal_code}?`)) {
                           deleteAnimal(animal.id);
                         }
-                      }}
-                      className="p-1.5 text-neutral-600 hover:text-rose-700 hover:bg-neutral-100 rounded-md"
-                      title="Delete Animal"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  )}
+                      });
+                    }}
+                    className="p-1.5 text-neutral-600 hover:text-rose-700 hover:bg-neutral-100 rounded-md"
+                    title="Delete Animal (Admin only)"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
                 </div>
               </div>
             </div>

@@ -17,7 +17,7 @@ import {
 
 export const Expenses: React.FC = () => {
   const { expenses, addExpense, deleteExpense, settings } = useDairy();
-  const { can } = useAuth();
+  const { can, requireAdmin } = useAuth();
 
   const [modalOpen, setModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -84,11 +84,13 @@ export const Expenses: React.FC = () => {
     e.preventDefault();
     if (!formData.description.trim() || formData.amount <= 0) return;
 
-    addExpense({
-      ...formData,
-      amount: Number(formData.amount),
+    requireAdmin(() => {
+      addExpense({
+        ...formData,
+        amount: Number(formData.amount),
+      });
+      setModalOpen(false);
     });
-    setModalOpen(false);
   };
 
   return (
@@ -110,7 +112,7 @@ export const Expenses: React.FC = () => {
         </div>
 
         <button
-          onClick={() => setModalOpen(true)}
+          onClick={() => requireAdmin(() => setModalOpen(true))}
           className="flex items-center justify-center gap-2 px-4 py-2.5 bg-neutral-900 hover:bg-neutral-800 text-white font-semibold text-xs rounded-lg shadow-xs transition-colors"
         >
           <Plus className="w-4 h-4" />
@@ -255,19 +257,19 @@ export const Expenses: React.FC = () => {
                     </td>
                     <td className="py-3 px-4 text-neutral-500">{exp.notes || '—'}</td>
                     <td className="py-3 px-4 text-center">
-                      {can('delete_financial') && (
-                        <button
-                          onClick={() => {
+                      <button
+                        onClick={() => {
+                          requireAdmin(() => {
                             if (window.confirm(`Delete expense record ${exp.description}?`)) {
                               deleteExpense(exp.id);
                             }
-                          }}
-                          className="p-1 text-neutral-500 hover:text-rose-700 rounded"
-                          title="Delete"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      )}
+                          });
+                        }}
+                        className="p-1 text-neutral-500 hover:text-rose-700 rounded"
+                        title="Delete (Admin only)"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
                     </td>
                   </tr>
                 ))

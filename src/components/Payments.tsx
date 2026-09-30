@@ -33,7 +33,7 @@ export const Payments: React.FC<PaymentsProps> = ({
   onNavigateToBill,
 }) => {
   const { payments, shopkeepers, deletePayment, settings, getShopkeeperBalance } = useDairy();
-  const { can } = useAuth();
+  const { can, requireAdmin } = useAuth();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedMethod, setSelectedMethod] = useState<string>('all');
@@ -109,7 +109,7 @@ export const Payments: React.FC<PaymentsProps> = ({
             <span>Print Ledger</span>
           </button>
           <button
-            onClick={() => onOpenPaymentModal()}
+            onClick={() => requireAdmin(() => onOpenPaymentModal())}
             className="px-4 py-2 bg-neutral-900 hover:bg-neutral-800 text-white font-semibold text-xs rounded-lg shadow-xs transition-colors flex items-center gap-1.5"
           >
             <Plus className="w-4 h-4" />
@@ -249,19 +249,19 @@ export const Payments: React.FC<PaymentsProps> = ({
                           >
                             <FileText className="w-3.5 h-3.5" />
                           </button>
-                          {can('delete_financial') && (
-                            <button
-                              onClick={() => {
+                          <button
+                            onClick={() => {
+                              requireAdmin(() => {
                                 if (window.confirm(`Delete payment record ${p.id}?`)) {
                                   deletePayment(p.id);
                                 }
-                              }}
-                              className="p-1 text-neutral-600 hover:text-rose-700 hover:bg-neutral-100 rounded"
-                              title="Delete Payment"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          )}
+                              });
+                            }}
+                            className="p-1 text-neutral-600 hover:text-rose-700 hover:bg-neutral-100 rounded"
+                            title="Delete Payment (Admin only)"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
                         </div>
                       </td>
                     </tr>

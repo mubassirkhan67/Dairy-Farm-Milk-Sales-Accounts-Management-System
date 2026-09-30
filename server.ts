@@ -30,7 +30,8 @@ function readDbFromFile(): DairyDatabase {
     if (fs.existsSync(DB_FILE)) {
       const content = fs.readFileSync(DB_FILE, 'utf-8');
       const parsed = JSON.parse(content);
-      if (parsed && parsed.shopkeepers && parsed.version === 3) {
+      if (parsed && Array.isArray(parsed.shopkeepers)) {
+        parsed.version = 3;
         return parsed;
       }
     }
@@ -46,6 +47,7 @@ function readDbFromFile(): DairyDatabase {
 
 function writeDbToFile(db: DairyDatabase): void {
   try {
+    db.version = 3;
     fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2), 'utf-8');
   } catch (err) {
     console.error('Failed to write database to disk:', err);
@@ -81,7 +83,8 @@ app.post('/api/database', (req: Request, res: Response) => {
   if (!newDb || !Array.isArray(newDb.shopkeepers) || !Array.isArray(newDb.milk_sales)) {
     return res.status(400).json({ error: 'Invalid database payload' });
   }
-  newDb.version = 2;
+  newDb.version = 3;
+  newDb.updated_at = newDb.updated_at || new Date().toISOString();
   currentDb = newDb;
   writeDbToFile(currentDb);
   res.json({ success: true, message: 'Database saved successfully' });

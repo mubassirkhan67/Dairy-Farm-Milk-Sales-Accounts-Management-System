@@ -4,7 +4,7 @@
  */
 
 import React, { useState } from 'react';
-import { AuthProvider } from './context/AuthContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import { DairyProvider } from './context/DairyContext';
 import { Navbar } from './components/Navbar';
 import { ModuleNav } from './components/ModuleNav';
@@ -23,8 +23,11 @@ import { Settings } from './components/Settings';
 import { MilkSaleModal } from './components/MilkSaleModal';
 import { PaymentModal } from './components/PaymentModal';
 import { GlobalSearch } from './components/GlobalSearch';
+import { OfflineIndicator } from './components/OfflineIndicator';
+import { AdminPasswordModal } from './components/AdminPasswordModal';
 
-export default function App() {
+function AppContent() {
+  const { requireAdmin } = useAuth();
   const [activeTab, setActiveTab] = useState<string>('dashboard');
   const [navParams, setNavParams] = useState<any>({});
 
@@ -45,151 +48,163 @@ export default function App() {
   };
 
   const handleOpenSaleModal = (date?: string, shopkeeperId?: string) => {
-    setSaleModalDate(date || '2026-09-28');
-    setSaleModalShopkeeperId(shopkeeperId);
-    setSaleModalOpen(true);
+    requireAdmin(() => {
+      setSaleModalDate(date || '2026-09-28');
+      setSaleModalShopkeeperId(shopkeeperId);
+      setSaleModalOpen(true);
+    });
   };
 
   const handleOpenPaymentModal = (shopkeeperId?: string) => {
-    setPaymentModalShopkeeperId(shopkeeperId);
-    setPaymentModalOpen(true);
+    requireAdmin(() => {
+      setPaymentModalShopkeeperId(shopkeeperId);
+      setPaymentModalOpen(true);
+    });
   };
 
   return (
-    <AuthProvider>
-      <DairyProvider>
-        <div className="min-h-screen bg-neutral-100 flex flex-col text-neutral-900">
-          {/* Top Bar (Follows Top Bar Contract) */}
-          <Navbar
-            activeTab={activeTab}
-            setActiveTab={setActiveTab}
-            onOpenQuickSale={() => handleOpenSaleModal()}
-            onOpenSearch={() => setSearchModalOpen(true)}
-          />
+    <div className="min-h-screen bg-neutral-100 flex flex-col text-neutral-900">
+      {/* Top Bar (Follows Top Bar Contract) */}
+      <Navbar
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        onOpenQuickSale={() => handleOpenSaleModal()}
+        onOpenSearch={() => setSearchModalOpen(true)}
+      />
 
-          {/* Module Sub-Navigation Bar */}
-          <ModuleNav activeTab={activeTab} setActiveTab={setActiveTab} />
+      {/* Module Sub-Navigation Bar */}
+      <ModuleNav activeTab={activeTab} setActiveTab={setActiveTab} />
 
-          {/* Main Viewport Container */}
-          <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
-            {activeTab === 'dashboard' && (
-              <Dashboard
-                onNavigate={handleNavigate}
-                onOpenQuickSale={() => handleOpenSaleModal()}
-                onOpenPaymentModal={() => handleOpenPaymentModal()}
-              />
-            )}
-
-            {activeTab === 'daily-sales' && (
-              <DailySales
-                initialDate={navParams?.date || '2026-09-28'}
-                onOpenSaleModal={handleOpenSaleModal}
-                onNavigateToBill={(skId) => handleNavigate('bill-generator', { shopkeeperId: skId })}
-              />
-            )}
-
-            {activeTab === 'shopkeepers' && (
-              <Shopkeepers
-                onOpenSaleModal={handleOpenSaleModal}
-                onOpenPaymentModal={handleOpenPaymentModal}
-                onNavigateToBill={(skId) => handleNavigate('bill-generator', { shopkeeperId: skId })}
-                onNavigateToLedger={(skId) => handleNavigate('bill-generator', { shopkeeperId: skId })}
-              />
-            )}
-
-            {activeTab === 'payments' && (
-              <Payments
-                initialShopkeeperId={navParams?.shopkeeperId}
-                onOpenPaymentModal={handleOpenPaymentModal}
-                onNavigateToBill={(skId) => handleNavigate('bill-generator', { shopkeeperId: skId })}
-              />
-            )}
-
-            {activeTab === 'monthly-report' && (
-              <MonthlyReport
-                onNavigateToBill={(skId, monthStr) =>
-                  handleNavigate('bill-generator', { shopkeeperId: skId, month: monthStr })
-                }
-                onNavigateToShopkeeperReport={(skId, monthStr) =>
-                  handleNavigate('bill-generator', { shopkeeperId: skId, month: monthStr })
-                }
-              />
-            )}
-
-            {activeTab === 'bill-generator' && (
-              <BillGenerator
-                initialShopkeeperId={navParams?.shopkeeperId}
-                initialMonth={navParams?.month || '2026-09'}
-                onBack={() => handleNavigate('dashboard')}
-              />
-            )}
-
-            {activeTab === 'milk-rates' && <MilkRates />}
-
-            {activeTab === 'animals' && (
-              <Animals
-                onOpenSellAnimalModal={(animalId) =>
-                  handleNavigate('animal-sales', { animalId, openSellModal: true })
-                }
-              />
-            )}
-
-            {activeTab === 'animal-sales' && (
-              <AnimalSales
-                initialAnimalId={navParams?.animalId}
-                isOpenModalImmediately={navParams?.openSellModal}
-              />
-            )}
-
-            {activeTab === 'expenses' && <Expenses />}
-
-            {activeTab === 'profit-loss' && <ProfitLoss />}
-
-            {activeTab === 'settings' && <Settings />}
-          </main>
-
-          {/* Quiet Clean Footer */}
-          <footer className="mt-auto py-5 border-t border-neutral-200/80 bg-white text-center text-xs text-neutral-500 no-print">
-            <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
-              <p className="font-medium text-neutral-700">
-                © 2026 <strong className="text-emerald-800">Haji Zafeer Gul Awan Dairy Farm</strong> · Wholesale Clients: Jawad Awan & Fawad Awan
-              </p>
-              <div className="flex items-center gap-2 font-mono text-[11px] text-neutral-500">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span>
-                <span>Backend Storage: data/dairy-db.json</span>
-              </div>
-            </div>
-          </footer>
-
-          {/* Global Milk Sale Entry Modal */}
-          <MilkSaleModal
-            isOpen={saleModalOpen}
-            onClose={() => setSaleModalOpen(false)}
-            initialDate={saleModalDate}
-            initialShopkeeperId={saleModalShopkeeperId}
-            onSuccess={() => {
-              // Stay on current tab or refresh
-            }}
-          />
-
-          {/* Global Payment Entry Modal */}
-          <PaymentModal
-            isOpen={paymentModalOpen}
-            onClose={() => setPaymentModalOpen(false)}
-            initialShopkeeperId={paymentModalShopkeeperId}
-            onSuccess={() => {
-              // Stay on current tab or refresh
-            }}
-          />
-
-          {/* Universal Search Modal (Ctrl+K or Header icon) */}
-          <GlobalSearch
-            isOpen={searchModalOpen}
-            onClose={() => setSearchModalOpen(false)}
+      {/* Main Viewport Container */}
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        {activeTab === 'dashboard' && (
+          <Dashboard
             onNavigate={handleNavigate}
+            onOpenQuickSale={() => handleOpenSaleModal()}
+            onOpenPaymentModal={() => handleOpenPaymentModal()}
           />
+        )}
+
+        {activeTab === 'daily-sales' && (
+          <DailySales
+            initialDate={navParams?.date || '2026-09-28'}
+            onOpenSaleModal={handleOpenSaleModal}
+            onNavigateToBill={(skId) => handleNavigate('bill-generator', { shopkeeperId: skId })}
+          />
+        )}
+
+        {activeTab === 'shopkeepers' && (
+          <Shopkeepers
+            onOpenSaleModal={handleOpenSaleModal}
+            onOpenPaymentModal={handleOpenPaymentModal}
+            onNavigateToBill={(skId) => handleNavigate('bill-generator', { shopkeeperId: skId })}
+            onNavigateToLedger={(skId) => handleNavigate('bill-generator', { shopkeeperId: skId })}
+          />
+        )}
+
+        {activeTab === 'payments' && (
+          <Payments
+            initialShopkeeperId={navParams?.shopkeeperId}
+            onOpenPaymentModal={handleOpenPaymentModal}
+            onNavigateToBill={(skId) => handleNavigate('bill-generator', { shopkeeperId: skId })}
+          />
+        )}
+
+        {activeTab === 'monthly-report' && (
+          <MonthlyReport
+            onNavigateToBill={(skId, monthStr) =>
+              handleNavigate('bill-generator', { shopkeeperId: skId, month: monthStr })
+            }
+            onNavigateToShopkeeperReport={(skId, monthStr) =>
+              handleNavigate('bill-generator', { shopkeeperId: skId, month: monthStr })
+            }
+          />
+        )}
+
+        {activeTab === 'bill-generator' && (
+          <BillGenerator
+            initialShopkeeperId={navParams?.shopkeeperId}
+            initialMonth={navParams?.month || '2026-09'}
+            onBack={() => handleNavigate('dashboard')}
+          />
+        )}
+
+        {activeTab === 'milk-rates' && <MilkRates />}
+
+        {activeTab === 'animals' && (
+          <Animals
+            onOpenSellAnimalModal={(animalId) =>
+              handleNavigate('animal-sales', { animalId, openSellModal: true })
+            }
+          />
+        )}
+
+        {activeTab === 'animal-sales' && (
+          <AnimalSales
+            initialAnimalId={navParams?.animalId}
+            isOpenModalImmediately={navParams?.openSellModal}
+          />
+        )}
+
+        {activeTab === 'expenses' && <Expenses />}
+
+        {activeTab === 'profit-loss' && <ProfitLoss />}
+
+        {activeTab === 'settings' && <Settings />}
+      </main>
+
+      {/* Quiet Clean Footer */}
+      <footer className="mt-auto py-5 border-t border-neutral-200/80 bg-white text-center text-xs text-neutral-500 no-print">
+        <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
+          <p className="font-medium text-neutral-700">
+            © 2026 <strong className="text-emerald-800">Haji Zafeer Gul Awan Dairy Farm</strong> · Wholesale Clients: Jawad Awan & Fawad Awan
+          </p>
+          <div className="flex items-center gap-2 font-mono text-[11px] text-neutral-500">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span>
+            <span>Backend Storage: data/dairy-db.json</span>
+          </div>
         </div>
-      </DairyProvider>
-    </AuthProvider>
+      </footer>
+
+      {/* Global Milk Sale Entry Modal */}
+      <MilkSaleModal
+        isOpen={saleModalOpen}
+        onClose={() => setSaleModalOpen(false)}
+        initialDate={saleModalDate}
+        initialShopkeeperId={saleModalShopkeeperId}
+        onSuccess={() => {}}
+      />
+
+      {/* Global Payment Entry Modal */}
+      <PaymentModal
+        isOpen={paymentModalOpen}
+        onClose={() => setPaymentModalOpen(false)}
+        initialShopkeeperId={paymentModalShopkeeperId}
+        onSuccess={() => {}}
+      />
+
+      {/* Universal Search Modal (Ctrl+K or Header icon) */}
+      <GlobalSearch
+        isOpen={searchModalOpen}
+        onClose={() => setSearchModalOpen(false)}
+        onNavigate={handleNavigate}
+      />
+
+      {/* Offline Connectivity Notification */}
+      <OfflineIndicator />
+
+      {/* Administrator Password Verification Modal */}
+      <AdminPasswordModal />
+    </div>
+  );
+}
+
+export default function App() {
+  return (
+    <DairyProvider>
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
+    </DairyProvider>
   );
 }

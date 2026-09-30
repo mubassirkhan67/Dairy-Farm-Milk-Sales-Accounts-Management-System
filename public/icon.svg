@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="farmGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#059669" />
+      <stop offset="100%" stop-color="#047857" />
+    </linearGradient>
+    <linearGradient id="milkGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="100%" stop-color="#e0f2fe" />
+    </linearGradient>
+  </defs>
+  <!-- Background Rounded Rect -->
+  <rect width="512" height="512" rx="108" fill="url(#farmGrad)" />
+  
+  <!-- Outer subtle circular badge border -->
+  <circle cx="256" cy="256" r="210" fill="none" stroke="#ffffff" stroke-opacity="0.15" stroke-width="8" />
+
+  <!-- Milk Bottle / Pitcher Symbol -->
+  <!-- Pitcher Body -->
+  <path d="M256 120 C220 120 200 150 190 200 L170 330 C165 370 195 400 235 400 L277 400 C317 400 347 370 342 330 L322 200 C312 150 292 120 256 120 Z" fill="url(#milkGrad)" />
+  <!-- Pitcher Neck Top -->
+  <rect x="220" y="90" width="72" height="34" rx="8" fill="#ffffff" />
+  <rect x="210" y="80" width="92" height="14" rx="6" fill="#f8fafc" />
+  
+  <!-- Droplet Accent -->
+  <path d="M256 220 C240 250 226 270 226 290 C226 312 239 326 256 326 C273 326 286 312 286 290 C286 270 272 250 256 220 Z" fill="#059669" />
+  
+  <!-- Dairy Waves -->
+  <path d="M178 340 C200 355 230 355 256 345 C282 335 312 335 334 350 L337 365 C320 385 295 395 256 395 C217 395 192 385 175 365 Z" fill="#bae6fd" opacity="0.6" />
+</svg>

@@ -119,43 +119,85 @@ export const DairyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
       if (health.connected) {
         const backendDb = await api.getDatabase();
-        if (backendDb && backendDb.shopkeepers && backendDb.version === 3) {
-          setDb(backendDb);
-          saveDatabase(backendDb);
-        } else {
-          // Reset to clean database and push to backend
-          const cleanDb = getInitialDatabase();
-          setDb(cleanDb);
-          saveDatabase(cleanDb);
-          await api.saveDatabase(cleanDb);
+        const localDb = loadDatabase();
+
+        if (backendDb && Array.isArray(backendDb.shopkeepers)) {
+          backendDb.version = 3;
+
+          const localTime = new Date(localDb.updated_at || 0).getTime();
+          const backendTime = new Date(backendDb.updated_at || 0).getTime();
+
+          const localTotalRecords =
+            (localDb.milk_sales?.length || 0) +
+            (localDb.payments?.length || 0) +
+            (localDb.shopkeepers?.length || 0) +
+            (localDb.expenses?.length || 0) +
+            (localDb.animals?.length || 0);
+
+          const backendTotalRecords =
+            (backendDb.milk_sales?.length || 0) +
+            (backendDb.payments?.length || 0) +
+            (backendDb.shopkeepers?.length || 0) +
+            (backendDb.expenses?.length || 0) +
+            (backendDb.animals?.length || 0);
+
+          // If local has newer updates or more records entered while offline:
+          if (localTime > backendTime || (localTotalRecords > backendTotalRecords && localTotalRecords > 1)) {
+            // Push local updates to backend so they are persisted
+            await api.saveDatabase(localDb);
+            setDb(localDb);
+          } else {
+            // Backend is equal or newer, sync to local state and localStorage
+            setDb(backendDb);
+            saveDatabase(backendDb);
+          }
+        } else if (localDb && Array.isArray(localDb.shopkeepers)) {
+          // Backend is empty/uninitialized, save local database to backend
+          await api.saveDatabase(localDb);
         }
       }
     } catch (err: any) {
       setBackendStatus({
         connected: false,
-        error: err?.message || 'Failed to connect to backend',
+        error: err?.message || 'Offline mode active',
       });
     }
-  }, [db]);
-
-  // Initial sync with backend on mount
-  useEffect(() => {
-    syncWithBackend();
-    // Periodic health check every 25 seconds
-    const interval = setInterval(() => {
-      api.checkHealth().then(setBackendStatus).catch(() => {
-        setBackendStatus({ connected: false });
-      });
-    }, 25000);
-    return () => clearInterval(interval);
   }, []);
 
-  // Save to localStorage and backend whenever db state changes
+  // Initial sync with backend on mount & listen to online reconnect
+  useEffect(() => {
+    syncWithBackend();
+
+    const handleOnline = () => {
+      console.log('[DairyApp] Device came online, syncing data with cloud...');
+      syncWithBackend();
+    };
+
+    window.addEventListener('online', handleOnline);
+
+    // Periodic health check every 25 seconds
+    const interval = setInterval(() => {
+      if (typeof navigator !== 'undefined' && navigator.onLine) {
+        api.checkHealth().then(setBackendStatus).catch(() => {
+          setBackendStatus({ connected: false, error: 'Offline mode' });
+        });
+      } else {
+        setBackendStatus({ connected: false, error: 'Offline mode' });
+      }
+    }, 25000);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      clearInterval(interval);
+    };
+  }, [syncWithBackend]);
+
+  // Save to localStorage immediately and backend whenever db state changes
   useEffect(() => {
     saveDatabase(db);
-    if (backendStatus.connected) {
+    if (backendStatus.connected && (typeof navigator === 'undefined' || navigator.onLine)) {
       api.saveDatabase(db).catch((err) => {
-        console.warn('Auto-save to backend failed:', err);
+        console.warn('Auto-save to backend failed, safely stored in local storage:', err);
       });
     }
   }, [db, backendStatus.connected]);
@@ -262,6 +304,7 @@ export const DairyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
     setDb((prev) => ({
       ...prev,
+      updated_at: new Date().toISOString(),
       shopkeepers: [newSk, ...prev.shopkeepers],
     }));
     return newSk;
@@ -296,6 +339,7 @@ export const DairyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     setDb((prev) => ({
       ...prev,
+      updated_at: new Date().toISOString(),
       shopkeepers: [...newShopkeepers, ...prev.shopkeepers],
     }));
 
@@ -305,6 +349,7 @@ export const DairyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const updateShopkeeper = (id: string, updates: Partial<Shopkeeper>) => {
     setDb((prev) => ({
       ...prev,
+      updated_at: new Date().toISOString(),
       shopkeepers: prev.shopkeepers.map((sk) => (sk.id === id ? { ...sk, ...updates } : sk)),
     }));
   };
@@ -312,6 +357,7 @@ export const DairyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const deleteShopkeeper = (id: string) => {
     setDb((prev) => ({
       ...prev,
+      updated_at: new Date().toISOString(),
       shopkeepers: prev.shopkeepers.filter((sk) => sk.id !== id),
     }));
   };
@@ -392,6 +438,7 @@ export const DairyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     setDb((prev) => ({
       ...prev,
+      updated_at: new Date().toISOString(),
       milk_sales: [newSale, ...prev.milk_sales],
       payments: paymentRecord ? [paymentRecord, ...prev.payments] : prev.payments,
     }));
@@ -402,6 +449,7 @@ export const DairyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const updateMilkSale = (id: string, updates: Partial<MilkSale>) => {
     setDb((prev) => ({
       ...prev,
+      updated_at: new Date().toISOString(),
       milk_sales: prev.milk_sales.map((sale) => {
         if (sale.id !== id) return sale;
         const merged = { ...sale, ...updates };
@@ -421,6 +469,7 @@ export const DairyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const deleteMilkSale = (id: string) => {
     setDb((prev) => ({
       ...prev,
+      updated_at: new Date().toISOString(),
       milk_sales: prev.milk_sales.filter((sale) => sale.id !== id),
       // remove associated payment if created with sale
       payments: prev.payments.filter((p) => p.sale_id !== id),
@@ -451,6 +500,7 @@ export const DairyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     setDb((prev) => ({
       ...prev,
+      updated_at: new Date().toISOString(),
       payments: [newPayment, ...prev.payments],
     }));
 
@@ -460,6 +510,7 @@ export const DairyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const deletePayment = (id: string) => {
     setDb((prev) => ({
       ...prev,
+      updated_at: new Date().toISOString(),
       payments: prev.payments.filter((p) => p.id !== id),
     }));
   };
@@ -475,6 +526,7 @@ export const DairyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
     setDb((prev) => ({
       ...prev,
+      updated_at: new Date().toISOString(),
       milk_rates: [newRate, ...prev.milk_rates],
     }));
   };
@@ -488,6 +540,7 @@ export const DairyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
     setDb((prev) => ({
       ...prev,
+      updated_at: new Date().toISOString(),
       animals: [newAnimal, ...prev.animals],
     }));
     return newAnimal;
@@ -496,6 +549,7 @@ export const DairyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const updateAnimal = (id: string, updates: Partial<Animal>) => {
     setDb((prev) => ({
       ...prev,
+      updated_at: new Date().toISOString(),
       animals: prev.animals.map((a) => (a.id === id ? { ...a, ...updates } : a)),
     }));
   };
@@ -503,6 +557,7 @@ export const DairyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const deleteAnimal = (id: string) => {
     setDb((prev) => ({
       ...prev,
+      updated_at: new Date().toISOString(),
       animals: prev.animals.filter((a) => a.id !== id),
     }));
   };
@@ -517,6 +572,7 @@ export const DairyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     setDb((prev) => ({
       ...prev,
+      updated_at: new Date().toISOString(),
       animal_sales: [newSale, ...prev.animal_sales],
       animals: prev.animals.map((a) =>
         a.id === saleData.animal_id ? { ...a, status: 'Sold' as const } : a
@@ -535,6 +591,7 @@ export const DairyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
     setDb((prev) => ({
       ...prev,
+      updated_at: new Date().toISOString(),
       expenses: [newExpense, ...prev.expenses],
     }));
     return newExpense;
@@ -543,6 +600,7 @@ export const DairyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const deleteExpense = (id: string) => {
     setDb((prev) => ({
       ...prev,
+      updated_at: new Date().toISOString(),
       expenses: prev.expenses.filter((e) => e.id !== id),
     }));
   };
@@ -551,6 +609,7 @@ export const DairyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const updateSettings = (newSettings: Partial<FarmSettings>) => {
     setDb((prev) => ({
       ...prev,
+      updated_at: new Date().toISOString(),
       settings: { ...prev.settings, ...newSettings },
     }));
   };

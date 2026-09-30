@@ -8,6 +8,7 @@ import {
   Upload,
   RefreshCw,
   Shield,
+  ShieldCheck,
   Check,
   AlertCircle,
   Database,
@@ -15,6 +16,10 @@ import {
   Save,
   Radio,
   FileCheck,
+  Lock,
+  KeyRound,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 
 export const Settings: React.FC = () => {
@@ -30,7 +35,7 @@ export const Settings: React.FC = () => {
     milkSales,
     payments,
   } = useDairy();
-  const { currentUser, switchRole } = useAuth();
+  const { currentUser, isAdmin, isAdminUnlocked, lockAdmin, openPasswordModal, changeAdminPassword, requireAdmin } = useAuth();
   const [isSyncing, setIsSyncing] = useState(false);
 
   const [formData, setFormData] = useState({
@@ -47,11 +52,23 @@ export const Settings: React.FC = () => {
   const [restoreJson, setRestoreJson] = useState('');
   const [showRestoreBox, setShowRestoreBox] = useState(false);
 
+  // Admin password change form state
+  const [passwords, setPasswords] = useState({
+    current: '',
+    newPass: '',
+    confirmPass: '',
+  });
+  const [showPassFields, setShowPassFields] = useState(false);
+  const [passwordSuccess, setPasswordSuccess] = useState<string | null>(null);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+
   const handleSaveSettings = (e: React.FormEvent) => {
     e.preventDefault();
-    updateSettings(formData);
-    setStatusMessage('Farm configuration saved successfully!');
-    setTimeout(() => setStatusMessage(null), 3000);
+    requireAdmin(() => {
+      updateSettings(formData);
+      setStatusMessage('Farm configuration saved successfully!');
+      setTimeout(() => setStatusMessage(null), 3000);
+    });
   };
 
   const handleDownloadBackup = () => {
@@ -73,42 +90,68 @@ export const Settings: React.FC = () => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      try {
-        const content = event.target?.result as string;
-        importBackup(content);
-        setStatusMessage('Database restored successfully from file!');
-        setTimeout(() => setStatusMessage(null), 3500);
-      } catch (err: any) {
-        setErrorMessage(err?.message || 'Invalid backup file structure.');
-      }
-    };
-    reader.readAsText(file);
+    requireAdmin(() => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        try {
+          const content = event.target?.result as string;
+          importBackup(content);
+          setStatusMessage('Database restored successfully from file!');
+          setTimeout(() => setStatusMessage(null), 3500);
+        } catch (err: any) {
+          setErrorMessage(err?.message || 'Invalid backup file structure.');
+        }
+      };
+      reader.readAsText(file);
+    });
   };
 
   const handleManualRestore = () => {
     if (!restoreJson.trim()) return;
-    try {
-      importBackup(restoreJson.trim());
-      setShowRestoreBox(false);
-      setRestoreJson('');
-      setStatusMessage('Database restored successfully!');
-      setTimeout(() => setStatusMessage(null), 3500);
-    } catch (err: any) {
-      setErrorMessage(err?.message || 'Failed to restore database. Invalid JSON.');
-    }
+    requireAdmin(() => {
+      try {
+        importBackup(restoreJson.trim());
+        setShowRestoreBox(false);
+        setRestoreJson('');
+        setStatusMessage('Database restored successfully!');
+        setTimeout(() => setStatusMessage(null), 3500);
+      } catch (err: any) {
+        setErrorMessage(err?.message || 'Failed to restore database. Invalid JSON.');
+      }
+    });
   };
 
   const handleResetData = () => {
-    if (
-      window.confirm(
-        'Are you sure you want to reset all records to the original demonstration sample data?'
-      )
-    ) {
-      resetToSampleData();
-      setStatusMessage('Database has been reset to pristine initial demo records.');
-      setTimeout(() => setStatusMessage(null), 3000);
+    requireAdmin(() => {
+      if (
+        window.confirm(
+          'Are you sure you want to reset all records to the original demonstration sample data?'
+        )
+      ) {
+        resetToSampleData();
+        setStatusMessage('Database has been reset to pristine initial demo records.');
+        setTimeout(() => setStatusMessage(null), 3000);
+      }
+    });
+  };
+
+  const handleChangePassword = (e: React.FormEvent) => {
+    e.preventDefault();
+    setPasswordError(null);
+    setPasswordSuccess(null);
+
+    if (passwords.newPass !== passwords.confirmPass) {
+      setPasswordError('New password and confirmation do not match.');
+      return;
+    }
+
+    const res = changeAdminPassword(passwords.current, passwords.newPass);
+    if (!res.success) {
+      setPasswordError(res.error || 'Failed to update admin password.');
+    } else {
+      setPasswordSuccess('Admin password changed successfully!');
+      setPasswords({ current: '', newPass: '', confirmPass: '' });
+      setTimeout(() => setPasswordSuccess(null), 4000);
     }
   };
 
@@ -429,68 +472,170 @@ export const Settings: React.FC = () => {
         )}
       </div>
 
-      {/* User Role & Permission Overview (Section 20) */}
-      <div className="bg-white border border-neutral-200 rounded-xl p-6 shadow-xs space-y-4">
-        <div className="flex items-center justify-between">
+      {/* Admin Password & Security Access Control */}
+      <div className="bg-white border border-neutral-200 rounded-xl p-6 shadow-xs space-y-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-neutral-100">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold">
+              <ShieldCheck className="w-5 h-5" />
+            </div>
+            <div>
+              <h2 className="text-base font-bold text-neutral-900">Admin Security & Password Protection</h2>
+              <p className="text-xs text-neutral-500 mt-0.5">
+                Restricts all data entry, modification, and deletion strictly to the Administrator
+              </p>
+            </div>
+          </div>
+
           <div>
-            <h2 className="text-base font-bold text-neutral-900">User Roles & Access Control</h2>
-            <p className="text-xs text-neutral-500 mt-0.5">
-              Current active session: <strong>{currentUser?.name}</strong> (Role:{' '}
-              <span className="uppercase font-mono font-bold text-emerald-700">{currentUser?.role}</span>)
-            </p>
+            {isAdminUnlocked ? (
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-emerald-800 bg-emerald-100 px-3 py-1.5 rounded-lg flex items-center gap-1.5">
+                  <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                  <span>Admin Unlocked</span>
+                </span>
+                <button
+                  type="button"
+                  onClick={lockAdmin}
+                  className="px-3 py-1.5 text-xs font-semibold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-lg transition"
+                >
+                  Lock Now
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => openPasswordModal()}
+                className="px-4 py-2 text-xs font-bold text-white bg-emerald-700 hover:bg-emerald-800 rounded-lg flex items-center gap-1.5 shadow-xs transition"
+              >
+                <Lock className="w-3.5 h-3.5" />
+                <span>Unlock Admin Mode</span>
+              </button>
+            )}
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-          <div className="p-4 border border-neutral-200 rounded-xl bg-neutral-50">
-            <div className="flex items-center justify-between mb-2">
-              <span className="font-bold text-neutral-900 text-sm">Farm Owner (Admin)</span>
-              {currentUser?.role === 'admin' && (
-                <span className="text-[11px] font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded">
-                  Active
-                </span>
-              )}
-            </div>
+        {/* Security Policy Information */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+          <div className="p-4 rounded-xl bg-neutral-50 border border-neutral-200 space-y-2">
+            <p className="font-bold text-neutral-900 flex items-center gap-1.5">
+              <ShieldCheck className="w-4 h-4 text-emerald-600" />
+              <span>Administrator Privileges (Unlocked)</span>
+            </p>
             <ul className="space-y-1 text-neutral-600 list-disc list-inside">
-              <li>Add and edit shopkeeper accounts</li>
-              <li>Record daily milk sales and payments</li>
-              <li>Delete transactions and financial records</li>
-              <li>Set and schedule milk pricing rates</li>
-              <li>View profit & loss financial statements</li>
+              <li>Enter daily milk dispatches and bulk dispatches</li>
+              <li>Record cash payments and bank collections</li>
+              <li>Create, edit, and delete shopkeeper accounts</li>
+              <li>Erase / delete any incorrect transactions</li>
+              <li>Configure milk pricing rates and farm settings</li>
               <li>Download and restore database backups</li>
             </ul>
-            <button
-              onClick={() => switchRole('admin')}
-              className="mt-3 w-full py-1.5 border border-neutral-300 rounded-lg font-semibold text-neutral-700 hover:bg-white"
-            >
-              Switch to Admin
-            </button>
           </div>
 
-          <div className="p-4 border border-neutral-200 rounded-xl bg-neutral-50">
-            <div className="flex items-center justify-between mb-2">
-              <span className="font-bold text-neutral-900 text-sm">Delivery Boy (Employee)</span>
-              {currentUser?.role === 'employee' && (
-                <span className="text-[11px] font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded">
-                  Active
-                </span>
-              )}
-            </div>
+          <div className="p-4 rounded-xl bg-neutral-50 border border-neutral-200 space-y-2">
+            <p className="font-bold text-neutral-900 flex items-center gap-1.5">
+              <Lock className="w-4 h-4 text-neutral-500" />
+              <span>Staff / Viewer Mode (Locked)</span>
+            </p>
             <ul className="space-y-1 text-neutral-600 list-disc list-inside">
-              <li>Fast daily milk sale entry on mobile phone</li>
-              <li>View shopkeeper accounts & balances</li>
-              <li>Record customer payment receipts</li>
-              <li>View daily dispatches register</li>
-              <li>Restricted: Cannot delete records or alter rates</li>
-              <li>Restricted: Cannot access profit & loss</li>
+              <li>View real-time dashboard analytics and herd statistics</li>
+              <li>Browse daily delivery registers and shopkeeper balances</li>
+              <li>Generate, print, and WhatsApp monthly bills</li>
+              <li>View customer vouchers and payment receipts</li>
+              <li><strong>Blocked:</strong> Cannot add, edit, or delete any data</li>
+              <li>Requires Admin password prompt to perform changes</li>
             </ul>
-            <button
-              onClick={() => switchRole('employee')}
-              className="mt-3 w-full py-1.5 border border-neutral-300 rounded-lg font-semibold text-neutral-700 hover:bg-white"
-            >
-              Switch to Employee
-            </button>
           </div>
+        </div>
+
+        {/* Change Admin Password Form */}
+        <div className="pt-2 border-t border-neutral-100">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-bold text-neutral-900 flex items-center gap-1.5">
+              <KeyRound className="w-4 h-4 text-neutral-700" />
+              <span>Change Admin Password</span>
+            </h3>
+            <span className="text-[11px] text-neutral-400 font-mono">
+              Default password: <strong className="text-neutral-700">admin123</strong>
+            </span>
+          </div>
+
+          {passwordSuccess && (
+            <div className="mb-3 p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs font-semibold text-emerald-800 flex items-center gap-2">
+              <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span>{passwordSuccess}</span>
+            </div>
+          )}
+
+          {passwordError && (
+            <div className="mb-3 p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs font-semibold text-rose-800 flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+              <span>{passwordError}</span>
+            </div>
+          )}
+
+          <form onSubmit={handleChangePassword} className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <label className="block text-[11px] font-semibold text-neutral-600 mb-1">
+                Current Password
+              </label>
+              <input
+                type={showPassFields ? 'text' : 'password'}
+                value={passwords.current}
+                onChange={(e) => setPasswords({ ...passwords, current: e.target.value })}
+                placeholder="Current password"
+                className="w-full px-3 py-2 text-xs border border-neutral-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500 bg-white"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-semibold text-neutral-600 mb-1">
+                New Password
+              </label>
+              <input
+                type={showPassFields ? 'text' : 'password'}
+                value={passwords.newPass}
+                onChange={(e) => setPasswords({ ...passwords, newPass: e.target.value })}
+                placeholder="New password (min 4 chars)"
+                className="w-full px-3 py-2 text-xs border border-neutral-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500 bg-white"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-semibold text-neutral-600 mb-1">
+                Confirm New Password
+              </label>
+              <input
+                type={showPassFields ? 'text' : 'password'}
+                value={passwords.confirmPass}
+                onChange={(e) => setPasswords({ ...passwords, confirmPass: e.target.value })}
+                placeholder="Confirm new password"
+                className="w-full px-3 py-2 text-xs border border-neutral-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500 bg-white"
+                required
+              />
+            </div>
+
+            <div className="sm:col-span-3 flex items-center justify-between pt-1">
+              <button
+                type="button"
+                onClick={() => setShowPassFields(!showPassFields)}
+                className="text-[11px] text-neutral-500 hover:text-neutral-800 flex items-center gap-1"
+              >
+                {showPassFields ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                <span>{showPassFields ? 'Hide Passwords' : 'Show Passwords'}</span>
+              </button>
+
+              <button
+                type="submit"
+                className="px-4 py-2 bg-neutral-900 hover:bg-neutral-800 text-white font-semibold text-xs rounded-lg transition shadow-xs flex items-center gap-1.5"
+              >
+                <KeyRound className="w-3.5 h-3.5" />
+                <span>Save New Password</span>
+              </button>
+            </div>
+          </form>
         </div>
       </div>
 

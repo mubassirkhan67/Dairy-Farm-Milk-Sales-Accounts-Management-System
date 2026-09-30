@@ -123,6 +123,7 @@ export interface FarmSettings {
   address: string;
   currency_symbol: string;
   default_unit: UnitType;
+  admin_password?: string;
 }
 
 export interface DairyDatabase {
@@ -136,4 +137,5 @@ export interface DairyDatabase {
   expenses: Expense[];
   settings: FarmSettings;
   version: number;
+  updated_at?: string;
 }

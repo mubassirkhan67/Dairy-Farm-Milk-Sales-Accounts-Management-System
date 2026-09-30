@@ -44,7 +44,7 @@ export const DailySales: React.FC<DailySalesProps> = ({
     getEffectiveRateForDate,
     settings,
   } = useDairy();
-  const { can } = useAuth();
+  const { can, requireAdmin, isAdmin } = useAuth();
 
   const [selectedDate, setSelectedDate] = useState<string>(initialDate);
   const [searchQuery, setSearchQuery] = useState('');
@@ -101,27 +101,29 @@ export const DailySales: React.FC<DailySalesProps> = ({
       return;
     }
 
-    try {
-      addMilkSale({
-        shopkeeper_id: targetShop.id,
-        sale_date: selectedDate,
-        quantity: numQuickQty,
-        unit: (settings.default_unit as UnitType) || 'KG',
-        rate: numQuickRate,
-        paid_amount: numQuickPaid,
-        notes: quickNotes.trim(),
-      });
+    requireAdmin(() => {
+      try {
+        addMilkSale({
+          shopkeeper_id: targetShop.id,
+          sale_date: selectedDate,
+          quantity: numQuickQty,
+          unit: (settings.default_unit as UnitType) || 'KG',
+          rate: numQuickRate,
+          paid_amount: numQuickPaid,
+          notes: quickNotes.trim(),
+        });
 
-      setQuickSuccess(
-        `Added ${numQuickQty} ${settings.default_unit || 'KG'} milk sale for ${targetShop.shop_name} (Total: ${formatCurrency(quickTotal, settings.currency_symbol)}) to the list!`
-      );
-      setQuickQty('25');
-      setQuickPaid('0');
-      setQuickNotes('');
-      setTimeout(() => setQuickSuccess(null), 4000);
-    } catch (err: any) {
-      setQuickError(err?.message || 'Failed to add sale record.');
-    }
+        setQuickSuccess(
+          `Added ${numQuickQty} ${settings.default_unit || 'KG'} milk sale for ${targetShop.shop_name} (Total: ${formatCurrency(quickTotal, settings.currency_symbol)}) to the list!`
+        );
+        setQuickQty('25');
+        setQuickPaid('0');
+        setQuickNotes('');
+        setTimeout(() => setQuickSuccess(null), 4000);
+      } catch (err: any) {
+        setQuickError(err?.message || 'Failed to add sale record.');
+      }
+    });
   };
 
   // Navigate dates
@@ -177,8 +179,10 @@ export const DailySales: React.FC<DailySalesProps> = ({
   }, [salesForDate]);
 
   const handleDelete = (id: string) => {
-    deleteMilkSale(id);
-    setDeleteConfirmationId(null);
+    requireAdmin(() => {
+      deleteMilkSale(id);
+      setDeleteConfirmationId(null);
+    });
   };
 
   return (
@@ -560,21 +564,19 @@ export const DailySales: React.FC<DailySalesProps> = ({
                           <FileText className="w-3.5 h-3.5" />
                         </button>
                         <button
-                          onClick={() => setEditingSale(sale)}
+                          onClick={() => requireAdmin(() => setEditingSale(sale))}
                           className="p-1 text-neutral-600 hover:text-blue-700 hover:bg-neutral-100 rounded"
-                          title="Edit Sale"
+                          title="Edit Sale (Admin only)"
                         >
                           <Edit2 className="w-3.5 h-3.5" />
                         </button>
-                        {can('delete_financial') && (
-                          <button
-                            onClick={() => setDeleteConfirmationId(sale.id)}
-                            className="p-1 text-neutral-600 hover:text-rose-700 hover:bg-neutral-100 rounded"
-                            title="Delete Sale"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        )}
+                        <button
+                          onClick={() => requireAdmin(() => setDeleteConfirmationId(sale.id))}
+                          className="p-1 text-neutral-600 hover:text-rose-700 hover:bg-neutral-100 rounded"
+                          title="Delete Sale (Admin only)"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -813,13 +815,15 @@ export const DailySales: React.FC<DailySalesProps> = ({
               </button>
               <button
                 onClick={() => {
-                  updateMilkSale(editingSale.id, {
-                    quantity: editingSale.quantity,
-                    rate: editingSale.rate,
-                    paid_amount: editingSale.paid_amount,
-                    notes: editingSale.notes,
+                  requireAdmin(() => {
+                    updateMilkSale(editingSale.id, {
+                      quantity: editingSale.quantity,
+                      rate: editingSale.rate,
+                      paid_amount: editingSale.paid_amount,
+                      notes: editingSale.notes,
+                    });
+                    setEditingSale(null);
                   });
-                  setEditingSale(null);
                 }}
                 className="flex-1 py-2 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg"
               >

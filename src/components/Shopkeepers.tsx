@@ -45,7 +45,7 @@ export const Shopkeepers: React.FC<ShopkeepersProps> = ({
     settings,
   } = useDairy();
 
-  const { can } = useAuth();
+  const { can, requireAdmin } = useAuth();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
@@ -98,35 +98,39 @@ export const Shopkeepers: React.FC<ShopkeepersProps> = ({
   }, [filteredShopkeepers]);
 
   const handleOpenAddModal = () => {
-    const nextNumber = shopkeepers.length + 1;
-    setFormData({
-      shop_id: `S${nextNumber.toString().padStart(3, '0')}`,
-      shop_name: '',
-      owner_name: '',
-      phone: '',
-      address: '',
-      opening_balance: 0,
-      status: 'active',
-      notes: '',
+    requireAdmin(() => {
+      const nextNumber = shopkeepers.length + 1;
+      setFormData({
+        shop_id: `S${nextNumber.toString().padStart(3, '0')}`,
+        shop_name: '',
+        owner_name: '',
+        phone: '',
+        address: '',
+        opening_balance: 0,
+        status: 'active',
+        notes: '',
+      });
+      setFormError(null);
+      setModalMode('add');
     });
-    setFormError(null);
-    setModalMode('add');
   };
 
   const handleOpenEditModal = (sk: Shopkeeper) => {
-    setEditingShopkeeper(sk);
-    setFormData({
-      shop_id: sk.id,
-      shop_name: sk.shop_name,
-      owner_name: sk.owner_name,
-      phone: sk.phone,
-      address: sk.address,
-      opening_balance: sk.opening_balance,
-      status: sk.status,
-      notes: sk.notes,
+    requireAdmin(() => {
+      setEditingShopkeeper(sk);
+      setFormData({
+        shop_id: sk.id,
+        shop_name: sk.shop_name,
+        owner_name: sk.owner_name,
+        phone: sk.phone,
+        address: sk.address,
+        opening_balance: sk.opening_balance,
+        status: sk.status,
+        notes: sk.notes,
+      });
+      setFormError(null);
+      setModalMode('edit');
     });
-    setFormError(null);
-    setModalMode('edit');
   };
 
   const handleFormSubmit = (e: React.FormEvent) => {
@@ -142,35 +146,39 @@ export const Shopkeepers: React.FC<ShopkeepersProps> = ({
       return;
     }
 
-    if (modalMode === 'add') {
-      addShopkeeper({
-        id: formData.shop_id || undefined,
-        shop_name: formData.shop_name.trim(),
-        owner_name: formData.owner_name.trim(),
-        phone: formData.phone.trim(),
-        address: formData.address.trim(),
-        opening_balance: Number(formData.opening_balance) || 0,
-        status: formData.status,
-        notes: formData.notes.trim(),
-      });
-    } else if (modalMode === 'edit' && editingShopkeeper) {
-      updateShopkeeper(editingShopkeeper.id, {
-        shop_name: formData.shop_name.trim(),
-        owner_name: formData.owner_name.trim(),
-        phone: formData.phone.trim(),
-        address: formData.address.trim(),
-        opening_balance: Number(formData.opening_balance) || 0,
-        status: formData.status,
-        notes: formData.notes.trim(),
-      });
-    }
+    requireAdmin(() => {
+      if (modalMode === 'add') {
+        addShopkeeper({
+          id: formData.shop_id || undefined,
+          shop_name: formData.shop_name.trim(),
+          owner_name: formData.owner_name.trim(),
+          phone: formData.phone.trim(),
+          address: formData.address.trim(),
+          opening_balance: Number(formData.opening_balance) || 0,
+          status: formData.status,
+          notes: formData.notes.trim(),
+        });
+      } else if (modalMode === 'edit' && editingShopkeeper) {
+        updateShopkeeper(editingShopkeeper.id, {
+          shop_name: formData.shop_name.trim(),
+          owner_name: formData.owner_name.trim(),
+          phone: formData.phone.trim(),
+          address: formData.address.trim(),
+          opening_balance: Number(formData.opening_balance) || 0,
+          status: formData.status,
+          notes: formData.notes.trim(),
+        });
+      }
 
-    setModalMode(null);
+      setModalMode(null);
+    });
   };
 
   const handleDelete = (id: string) => {
-    deleteShopkeeper(id);
-    setDeleteConfirmationId(null);
+    requireAdmin(() => {
+      deleteShopkeeper(id);
+      setDeleteConfirmationId(null);
+    });
   };
 
   return (
@@ -193,7 +201,7 @@ export const Shopkeepers: React.FC<ShopkeepersProps> = ({
 
         <div className="flex flex-wrap items-center gap-2.5">
           <button
-            onClick={() => setIsCsvModalOpen(true)}
+            onClick={() => requireAdmin(() => setIsCsvModalOpen(true))}
             className="flex items-center justify-center gap-2 px-3.5 py-2.5 bg-neutral-100 hover:bg-neutral-200 text-neutral-800 font-semibold text-xs rounded-lg border border-neutral-300 shadow-xs transition-colors"
             title="Import shopkeepers in bulk from CSV spreadsheet"
           >

@@ -6,7 +6,7 @@ import { Tag, Plus, ShieldCheck, AlertCircle, Clock, Info, Check } from 'lucide-
 
 export const MilkRates: React.FC = () => {
   const { milkRates, addMilkRate, currentEffectiveRate, settings } = useDairy();
-  const { can } = useAuth();
+  const { can, requireAdmin } = useAuth();
 
   const [rate, setRate] = useState<string>('230');
   const [effectiveDate, setEffectiveDate] = useState<string>('2026-10-01');
@@ -19,9 +19,11 @@ export const MilkRates: React.FC = () => {
     if (!numRate || numRate <= 0) return;
     if (!effectiveDate) return;
 
-    addMilkRate(numRate, effectiveDate, notes);
-    setSuccessMessage(`New rate of ${formatCurrency(numRate, settings.currency_symbol)} effective from ${formatDate(effectiveDate)} added.`);
-    setTimeout(() => setSuccessMessage(null), 3500);
+    requireAdmin(() => {
+      addMilkRate(numRate, effectiveDate, notes);
+      setSuccessMessage(`New rate of ${formatCurrency(numRate, settings.currency_symbol)} effective from ${formatDate(effectiveDate)} added.`);
+      setTimeout(() => setSuccessMessage(null), 3500);
+    });
   };
 
   const sortedRates = [...milkRates].sort((a, b) => b.effective_from.localeCompare(a.effective_from));

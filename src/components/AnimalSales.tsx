@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useDairy } from '../context/DairyContext';
+import { useAuth } from '../context/AuthContext';
 import { formatCurrency, formatDate } from '../utils/formatters';
 import { Plus, Search, Tag, DollarSign, Phone, User, Check, X, AlertCircle } from 'lucide-react';
 
@@ -13,6 +14,7 @@ export const AnimalSales: React.FC<AnimalSalesProps> = ({
   isOpenModalImmediately = false,
 }) => {
   const { animals, animalSales, recordAnimalSale, settings } = useDairy();
+  const { requireAdmin } = useAuth();
 
   const [modalOpen, setModalOpen] = useState(isOpenModalImmediately);
   const [searchQuery, setSearchQuery] = useState('');
@@ -45,17 +47,19 @@ export const AnimalSales: React.FC<AnimalSalesProps> = ({
   }, [animalSales]);
 
   const handleOpenAddModal = (targetAnimalId?: string) => {
-    if (targetAnimalId) setAnimalId(targetAnimalId);
-    else if (availableAnimals.length > 0) setAnimalId(availableAnimals[0].id);
+    requireAdmin(() => {
+      if (targetAnimalId) setAnimalId(targetAnimalId);
+      else if (availableAnimals.length > 0) setAnimalId(availableAnimals[0].id);
 
-    setBuyerName('');
-    setBuyerPhone('');
-    setSaleDate('2026-09-28');
-    setSalePrice('280000');
-    setPaidAmount('280000');
-    setNotes('');
-    setError(null);
-    setModalOpen(true);
+      setBuyerName('');
+      setBuyerPhone('');
+      setSaleDate('2026-09-28');
+      setSalePrice('280000');
+      setPaidAmount('280000');
+      setNotes('');
+      setError(null);
+      setModalOpen(true);
+    });
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -75,21 +79,23 @@ export const AnimalSales: React.FC<AnimalSalesProps> = ({
       return;
     }
 
-    try {
-      recordAnimalSale({
-        animal_id: animalId,
-        buyer_name: buyerName.trim(),
-        buyer_phone: buyerPhone.trim(),
-        sale_date: saleDate,
-        sale_price: numSalePrice,
-        paid_amount: numPaid,
-        remaining_amount: numRemaining,
-        notes: notes.trim(),
-      });
-      setModalOpen(false);
-    } catch (err: any) {
-      setError(err?.message || 'Failed to record animal sale.');
-    }
+    requireAdmin(() => {
+      try {
+        recordAnimalSale({
+          animal_id: animalId,
+          buyer_name: buyerName.trim(),
+          buyer_phone: buyerPhone.trim(),
+          sale_date: saleDate,
+          sale_price: numSalePrice,
+          paid_amount: numPaid,
+          remaining_amount: numRemaining,
+          notes: notes.trim(),
+        });
+        setModalOpen(false);
+      } catch (err: any) {
+        setError(err?.message || 'Failed to record animal sale.');
+      }
+    });
   };
 
   return (

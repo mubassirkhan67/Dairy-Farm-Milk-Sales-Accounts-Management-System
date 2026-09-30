@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useDairy } from '../context/DairyContext';
+import { PWAInstallButton } from './PWAInstallButton';
 import {
   Plus,
   Search,
@@ -29,7 +30,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenQuickSale,
   onOpenSearch,
 }) => {
-  const { currentUser, switchRole, logout } = useAuth();
+  const { currentUser, isAdmin, isAdminUnlocked, lockAdmin, openPasswordModal, requireAdmin } = useAuth();
   const { settings, backendStatus, syncWithBackend } = useDairy();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
@@ -107,6 +108,9 @@ export const Navbar: React.FC<NavbarProps> = ({
               )}
             </button>
 
+            {/* PWA Install Button */}
+            <PWAInstallButton />
+
             {/* Global Search trigger */}
             <button
               onClick={onOpenSearch}
@@ -119,7 +123,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
             {/* Quick Add Milk Sale Button */}
             <button
-              onClick={onOpenQuickSale}
+              onClick={() => requireAdmin(onOpenQuickSale)}
               className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-white bg-emerald-700 rounded-lg hover:bg-emerald-800 transition-colors shadow-xs whitespace-nowrap focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
             >
               <Plus className="w-4 h-4" />
@@ -127,65 +131,68 @@ export const Navbar: React.FC<NavbarProps> = ({
               <span className="sm:hidden">Sale</span>
             </button>
 
-            {/* Role & User Switcher */}
+            {/* Admin Lock / Unlock & User Status */}
             <div className="relative">
-              <button
-                onClick={() => setUserDropdownOpen(!userDropdownOpen)}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium border border-neutral-300 rounded-lg hover:bg-neutral-50 transition-colors text-neutral-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
-              >
-                <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
-                <span className="hidden sm:inline capitalize font-semibold">{currentUser?.role || 'Guest'}</span>
-                <User className="w-3.5 h-3.5 text-neutral-400" />
-              </button>
+              {isAdminUnlocked ? (
+                <button
+                  onClick={() => setUserDropdownOpen(!userDropdownOpen)}
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold bg-emerald-50 border border-emerald-300 rounded-lg hover:bg-emerald-100 transition-colors text-emerald-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 shadow-2xs"
+                  title="Admin mode is unlocked. You can enter and erase data."
+                >
+                  <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                  <span className="hidden sm:inline">Admin (Unlocked)</span>
+                  <span className="sm:hidden">Admin</span>
+                </button>
+              ) : (
+                <button
+                  onClick={() => openPasswordModal()}
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold bg-amber-50 hover:bg-amber-100 border border-amber-300 rounded-lg transition-colors text-amber-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 shadow-2xs"
+                  title="Click to enter password and unlock Admin access to add or erase data"
+                >
+                  <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+                  <span>Unlock Admin</span>
+                </button>
+              )}
 
               {userDropdownOpen && (
-                <div className="absolute right-0 mt-2 w-56 bg-white border border-neutral-200 rounded-xl shadow-lg py-2 z-50">
-                  <div className="px-4 py-2 border-b border-neutral-100">
-                    <p className="text-xs text-neutral-500">Logged in as</p>
-                    <p className="text-sm font-semibold text-neutral-900 truncate">
+                <div className="absolute right-0 mt-2 w-64 bg-white border border-neutral-200 rounded-xl shadow-xl py-2 z-50 animate-fade-in">
+                  <div className="px-4 py-2.5 border-b border-neutral-100">
+                    <p className="text-[11px] text-neutral-400 font-medium">Active Account</p>
+                    <p className="text-sm font-bold text-neutral-900 truncate">
                       {currentUser?.name || 'Administrator'}
                     </p>
-                    <p className="text-xs text-emerald-600 uppercase font-bold tracking-wide mt-0.5">
-                      Role: {currentUser?.role}
-                    </p>
+                    <div className="mt-1 flex items-center gap-1.5">
+                      <span className={`w-2 h-2 rounded-full ${isAdminUnlocked ? 'bg-emerald-500' : 'bg-neutral-400'}`} />
+                      <p className={`text-xs font-bold uppercase tracking-wider ${isAdminUnlocked ? 'text-emerald-700' : 'text-neutral-500'}`}>
+                        {isAdminUnlocked ? 'Admin: Full Access' : 'Viewer / Staff: Read Only'}
+                      </p>
+                    </div>
                   </div>
 
                   <div className="py-1">
-                    <button
-                      onClick={() => {
-                        switchRole('admin');
-                        setUserDropdownOpen(false);
-                      }}
-                      className={`w-full text-left px-4 py-2 text-xs flex items-center justify-between ${
-                        currentUser?.role === 'admin'
-                          ? 'bg-neutral-50 text-emerald-700 font-semibold'
-                          : 'text-neutral-700 hover:bg-neutral-50'
-                      }`}
-                    >
-                      <span className="flex items-center gap-2">
-                        <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-                        Switch to Admin (Full Access)
-                      </span>
-                      {currentUser?.role === 'admin' && '✓'}
-                    </button>
-
-                    <button
-                      onClick={() => {
-                        switchRole('employee');
-                        setUserDropdownOpen(false);
-                      }}
-                      className={`w-full text-left px-4 py-2 text-xs flex items-center justify-between ${
-                        currentUser?.role === 'employee'
-                          ? 'bg-neutral-50 text-emerald-700 font-semibold'
-                          : 'text-neutral-700 hover:bg-neutral-50'
-                      }`}
-                    >
-                      <span className="flex items-center gap-2">
-                        <User className="w-3.5 h-3.5 text-blue-600" />
-                        Switch to Employee (Sales Entry)
-                      </span>
-                      {currentUser?.role === 'employee' && '✓'}
-                    </button>
+                    {isAdminUnlocked ? (
+                      <button
+                        onClick={() => {
+                          lockAdmin();
+                          setUserDropdownOpen(false);
+                        }}
+                        className="w-full text-left px-4 py-2.5 text-xs text-rose-700 hover:bg-rose-50 font-semibold flex items-center gap-2 transition-colors"
+                      >
+                        <span>🔒</span>
+                        <span>Lock Admin Mode (Read-Only)</span>
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => {
+                          setUserDropdownOpen(false);
+                          openPasswordModal();
+                        }}
+                        className="w-full text-left px-4 py-2.5 text-xs text-emerald-800 hover:bg-emerald-50 font-semibold flex items-center gap-2 transition-colors"
+                      >
+                        <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                        <span>Enter Admin Password to Unlock</span>
+                      </button>
+                    )}
                   </div>
 
                   <div className="border-t border-neutral-100 pt-1">
@@ -194,9 +201,10 @@ export const Navbar: React.FC<NavbarProps> = ({
                         setActiveTab('settings');
                         setUserDropdownOpen(false);
                       }}
-                      className="w-full text-left px-4 py-2 text-xs text-neutral-700 hover:bg-neutral-50"
+                      className="w-full text-left px-4 py-2 text-xs text-neutral-700 hover:bg-neutral-50 flex items-center gap-2"
                     >
-                      Farm Settings & Backup
+                      <span>⚙️</span>
+                      <span>Change Password & Settings</span>
                     </button>
                   </div>
                 </div>

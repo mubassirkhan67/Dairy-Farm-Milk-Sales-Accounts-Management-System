@@ -20,6 +20,7 @@ export const INITIAL_SETTINGS: FarmSettings = {
   address: 'Haji Zafeer Gul Dairy Farm, Katlang Road Mardan',
   currency_symbol: 'Rs.',
   default_unit: 'KG',
+  admin_password: 'admin123',
 };
 
 export const INITIAL_USERS: User[] = [
@@ -81,6 +82,7 @@ export const getInitialDatabase = (): DairyDatabase => {
     expenses: [],
     settings: INITIAL_SETTINGS,
     version: 3,
+    updated_at: new Date().toISOString(),
   };
 };
 
@@ -88,28 +90,52 @@ export const loadDatabase = (): DairyDatabase => {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) {
+      // Check legacy keys if available to preserve any previously entered records
+      const legacyKey = localStorage.getItem('haji_zafeer_gul_awan_dairy_db_v2') || localStorage.getItem('dairy_farm_db_v1');
+      if (legacyKey) {
+        try {
+          const legacyParsed = JSON.parse(legacyKey);
+          if (legacyParsed && Array.isArray(legacyParsed.shopkeepers)) {
+            legacyParsed.version = 3;
+            legacyParsed.updated_at = legacyParsed.updated_at || new Date().toISOString();
+            saveDatabase(legacyParsed);
+            return legacyParsed;
+          }
+        } catch (_) {}
+      }
       const initial = getInitialDatabase();
       saveDatabase(initial);
       return initial;
     }
     const parsed = JSON.parse(raw);
-    // If old database version or corrupted, refresh with clean database
-    if (!parsed.shopkeepers || !parsed.milk_sales || parsed.version !== 3) {
+    if (!parsed || !Array.isArray(parsed.shopkeepers) || !Array.isArray(parsed.milk_sales)) {
       const initial = getInitialDatabase();
       saveDatabase(initial);
       return initial;
     }
+    
+    // Ensure all tables exist without wiping user records
+    parsed.version = 3;
+    parsed.users = Array.isArray(parsed.users) ? parsed.users : INITIAL_USERS;
+    parsed.shopkeepers = Array.isArray(parsed.shopkeepers) ? parsed.shopkeepers : INITIAL_SHOPKEEPERS;
+    parsed.milk_sales = Array.isArray(parsed.milk_sales) ? parsed.milk_sales : [];
+    parsed.payments = Array.isArray(parsed.payments) ? parsed.payments : [];
+    parsed.milk_rates = Array.isArray(parsed.milk_rates) ? parsed.milk_rates : INITIAL_RATES;
+    parsed.animals = Array.isArray(parsed.animals) ? parsed.animals : [];
+    parsed.animal_sales = Array.isArray(parsed.animal_sales) ? parsed.animal_sales : [];
+    parsed.expenses = Array.isArray(parsed.expenses) ? parsed.expenses : [];
+    parsed.settings = parsed.settings && parsed.settings.farm_name ? parsed.settings : INITIAL_SETTINGS;
     return parsed;
   } catch (err) {
-    console.error('Failed to load database from localStorage, resetting:', err);
-    const initial = getInitialDatabase();
-    saveDatabase(initial);
-    return initial;
+    console.error('Failed to load database from localStorage:', err);
+    return getInitialDatabase();
   }
 };
 
 export const saveDatabase = (db: DairyDatabase): void => {
   try {
+    db.version = 3;
+    db.updated_at = db.updated_at || new Date().toISOString();
     localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
   } catch (err) {
     console.error('Failed to save database to localStorage:', err);
