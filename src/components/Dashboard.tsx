@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { useDairy } from '../context/DairyContext';
-import { formatCurrency, formatQuantity, formatDate } from '../utils/formatters';
+import { formatCurrency, formatQuantity, formatDate, getTodayDateString } from '../utils/formatters';
+import { DayByDaySummary } from './DayByDaySummary';
 import {
   Milk,
   TrendingUp,
@@ -37,7 +38,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
     getAllShopkeepersBalances,
   } = useDairy();
 
-  const [referenceDate, setReferenceDate] = useState('2026-09-28');
+  const [referenceDate, setReferenceDate] = useState(() => getTodayDateString());
   const metrics = useMemo(() => getDashboardMetrics(referenceDate), [getDashboardMetrics, referenceDate]);
 
   // Today's milk sales deliveries
@@ -328,6 +329,17 @@ export const Dashboard: React.FC<DashboardProps> = ({
           </button>
         </div>
       </div>
+
+      {/* Day-by-Day Sales & Money Received Ledger (User Requested) */}
+      <DayByDaySummary
+        milkSales={milkSales}
+        payments={payments}
+        shopkeepers={shopkeepers}
+        settings={settings}
+        onNavigate={onNavigate}
+        onOpenQuickSale={onOpenQuickSale}
+        onOpenPaymentModal={onOpenPaymentModal}
+      />
 
       {/* Main Content Split: Charts & Today's Deliveries */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

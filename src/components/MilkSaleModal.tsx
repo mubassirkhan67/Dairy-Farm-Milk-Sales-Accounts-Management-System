@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useDairy } from '../context/DairyContext';
 import { UnitType } from '../types';
-import { formatCurrency, cleanNumericInput, parseCleanNumber } from '../utils/formatters';
+import { formatCurrency, cleanNumericInput, parseCleanNumber, getTodayDateString } from '../utils/formatters';
 import { X, Check, Calculator, AlertCircle, Sparkles } from 'lucide-react';
 
 interface MilkSaleModalProps {
@@ -16,7 +16,7 @@ export const MilkSaleModal: React.FC<MilkSaleModalProps> = ({
   isOpen,
   onClose,
   initialShopkeeperId,
-  initialDate = '2026-09-28',
+  initialDate,
   onSuccess,
 }) => {
   const {
@@ -27,7 +27,7 @@ export const MilkSaleModal: React.FC<MilkSaleModalProps> = ({
     settings,
   } = useDairy();
 
-  const [date, setDate] = useState(initialDate);
+  const [date, setDate] = useState(() => initialDate || getTodayDateString());
   const [shopkeeperId, setShopkeeperId] = useState(initialShopkeeperId || '');
   const [quantity, setQuantity] = useState<string>('25');
   const [unit, setUnit] = useState<UnitType>(settings.default_unit || 'KG');
@@ -40,7 +40,7 @@ export const MilkSaleModal: React.FC<MilkSaleModalProps> = ({
   // Guaranteed initialization whenever modal is opened
   useEffect(() => {
     if (isOpen) {
-      if (initialDate) setDate(initialDate);
+      setDate(initialDate || getTodayDateString());
       const defaultSk =
         (initialShopkeeperId && shopkeepers.find((s) => s.id === initialShopkeeperId)?.id) ||
         shopkeepers.find((s) => s.id === shopkeeperId)?.id ||

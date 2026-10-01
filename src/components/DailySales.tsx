@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useDairy } from '../context/DairyContext';
 import { useAuth } from '../context/AuthContext';
-import { formatCurrency, formatDate, cleanNumericInput, parseCleanNumber } from '../utils/formatters';
+import { formatCurrency, formatDate, cleanNumericInput, parseCleanNumber, getTodayDateString } from '../utils/formatters';
 import { printElement, downloadPrintableHtml } from '../utils/printHelper';
 import { MilkSale, UnitType } from '../types';
 import {
@@ -31,7 +31,7 @@ interface DailySalesProps {
 }
 
 export const DailySales: React.FC<DailySalesProps> = ({
-  initialDate = '2026-09-28',
+  initialDate,
   onOpenSaleModal,
   onNavigateToBill,
 }) => {
@@ -46,11 +46,28 @@ export const DailySales: React.FC<DailySalesProps> = ({
   } = useDairy();
   const { can, requireAdmin, isAdmin } = useAuth();
 
-  const [selectedDate, setSelectedDate] = useState<string>(initialDate);
+  const [selectedDate, setSelectedDate] = useState<string>(() => initialDate || getTodayDateString());
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSaleForInvoice, setSelectedSaleForInvoice] = useState<MilkSale | null>(null);
   const [editingSale, setEditingSale] = useState<MilkSale | null>(null);
   const [deleteConfirmationId, setDeleteConfirmationId] = useState<string | null>(null);
+
+  // Automatically update to today's date when day turns on the standard calendar
+  useEffect(() => {
+    const syncStandardCalendarDay = () => {
+      const today = getTodayDateString();
+      // If user is currently looking at today or initial load, keep it synchronized
+      const lastSavedDay = sessionStorage.getItem('dairy_current_calendar_day');
+      if (lastSavedDay && lastSavedDay !== today) {
+        setSelectedDate(today);
+      }
+      sessionStorage.setItem('dairy_current_calendar_day', today);
+    };
+
+    syncStandardCalendarDay();
+    const interval = setInterval(syncStandardCalendarDay, 60000); // Check every minute
+    return () => clearInterval(interval);
+  }, []);
 
   // Quick Inline Sale Entry State
   const [quickShopId, setQuickShopId] = useState<string>(shopkeepers[0]?.id || 'S001');
@@ -140,7 +157,7 @@ export const DailySales: React.FC<DailySalesProps> = ({
   };
 
   const handleSetToday = () => {
-    setSelectedDate('2026-09-28');
+    setSelectedDate(getTodayDateString());
   };
 
   // Filter sales for the selected date

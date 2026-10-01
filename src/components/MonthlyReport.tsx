@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useDairy } from '../context/DairyContext';
 import { useAuth } from '../context/AuthContext';
 import { MilkSale } from '../types';
-import { formatCurrency, formatDate, getMonthName, cleanNumericInput, parseCleanNumber } from '../utils/formatters';
+import { formatCurrency, formatDate, getMonthName, cleanNumericInput, parseCleanNumber, getCurrentMonthString } from '../utils/formatters';
 import { printElement, downloadPrintableHtml } from '../utils/printHelper';
 import {
   Calendar,
@@ -34,9 +34,9 @@ export const MonthlyReport: React.FC<MonthlyReportProps> = ({
   onNavigateToShopkeeperReport,
 }) => {
   const { milkSales, payments, shopkeepers, settings, getShopkeeperBalance, updateMilkSale, deleteMilkSale, addMilkSale } = useDairy();
-  const { can } = useAuth();
+  const { can, requireAdmin } = useAuth();
 
-  const [selectedMonth, setSelectedMonth] = useState('2026-09');
+  const [selectedMonth, setSelectedMonth] = useState(() => getCurrentMonthString());
   const [viewMode, setViewMode] = useState<'summary' | 'itemized'>('summary');
   const [filterShopkeeperId, setFilterShopkeeperId] = useState<string>('all');
   const [filterShift, setFilterShift] = useState<'all' | 'morning' | 'evening'>('all');
@@ -126,14 +126,16 @@ export const MonthlyReport: React.FC<MonthlyReportProps> = ({
 
   // Handlers for Editing
   const handleStartEdit = (sale: MilkSale) => {
-    setEditingSale(sale);
-    setEditDate(sale.sale_date);
-    setEditShopId(sale.shopkeeper_id);
-    setEditShift(sale.shift || 'morning');
-    setEditQty(sale.quantity.toString());
-    setEditRate(sale.rate.toString());
-    setEditPaid((sale.paid_amount || 0).toString());
-    setEditNotes(sale.notes || '');
+    requireAdmin(() => {
+      setEditingSale(sale);
+      setEditDate(sale.sale_date);
+      setEditShopId(sale.shopkeeper_id);
+      setEditShift(sale.shift || 'morning');
+      setEditQty(sale.quantity.toString());
+      setEditRate(sale.rate.toString());
+      setEditPaid((sale.paid_amount || 0).toString());
+      setEditNotes(sale.notes || '');
+    });
   };
 
   const handleSaveEdit = (e: React.FormEvent) => {
@@ -143,30 +145,33 @@ export const MonthlyReport: React.FC<MonthlyReportProps> = ({
     const rate = parseCleanNumber(editRate);
     const paid = parseCleanNumber(editPaid);
 
-    updateMilkSale(editingSale.id, {
-      sale_date: editDate || editingSale.sale_date,
-      shopkeeper_id: editShopId || editingSale.shopkeeper_id,
-      shift: editShift,
-      quantity: qty,
-      rate: rate,
-      paid_amount: paid,
-      notes: editNotes,
+    requireAdmin(() => {
+      updateMilkSale(editingSale.id, {
+        sale_date: editDate || editingSale.sale_date,
+        shopkeeper_id: editShopId || editingSale.shopkeeper_id,
+        shift: editShift,
+        quantity: qty,
+        rate: rate,
+        paid_amount: paid,
+        notes: editNotes,
+      });
+      setEditingSale(null);
     });
-    setEditingSale(null);
   };
 
   const handleDeleteSale = (sale: MilkSale) => {
-    if (!can('delete_financial')) return;
-    const shop = shopkeepers.find((s) => s.id === sale.shopkeeper_id);
-    if (
-      window.confirm(
-        `Are you sure you want to delete the record for ${shop?.shop_name || sale.shopkeeper_id} on ${formatDate(
-          sale.sale_date
-        )} (${sale.quantity} ${sale.unit})?`
-      )
-    ) {
-      deleteMilkSale(sale.id);
-    }
+    requireAdmin(() => {
+      const shop = shopkeepers.find((s) => s.id === sale.shopkeeper_id);
+      if (
+        window.confirm(
+          `Are you sure you want to delete the record for ${shop?.shop_name || sale.shopkeeper_id} on ${formatDate(
+            sale.sale_date
+          )} (${sale.quantity} ${sale.unit})?`
+        )
+      ) {
+        deleteMilkSale(sale.id);
+      }
+    });
   };
 
   const handleAddNewSale = (e: React.FormEvent) => {
@@ -176,21 +181,23 @@ export const MonthlyReport: React.FC<MonthlyReportProps> = ({
     const paid = parseCleanNumber(newPaid);
     if (qty <= 0 || rate <= 0 || !newShopId) return;
 
-    addMilkSale({
-      shopkeeper_id: newShopId,
-      sale_date: newDate,
-      shift: newShift,
-      quantity: qty,
-      unit: settings.default_unit,
-      rate: rate,
-      paid_amount: paid,
-      notes: newNotes,
-    });
+    requireAdmin(() => {
+      addMilkSale({
+        shopkeeper_id: newShopId,
+        sale_date: newDate,
+        shift: newShift,
+        quantity: qty,
+        unit: settings.default_unit,
+        rate: rate,
+        paid_amount: paid,
+        notes: newNotes,
+      });
 
-    setIsAddingSale(false);
-    setNewQty('');
-    setNewPaid('');
-    setNewNotes('');
+      setIsAddingSale(false);
+      setNewQty('');
+      setNewPaid('');
+      setNewNotes('');
+    });
   };
 
   // CSV Export

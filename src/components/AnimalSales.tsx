@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useDairy } from '../context/DairyContext';
 import { useAuth } from '../context/AuthContext';
-import { formatCurrency, formatDate } from '../utils/formatters';
+import { formatCurrency, formatDate, getTodayDateString } from '../utils/formatters';
 import { Plus, Search, Tag, DollarSign, Phone, User, Check, X, AlertCircle } from 'lucide-react';
 
 interface AnimalSalesProps {
@@ -23,7 +23,7 @@ export const AnimalSales: React.FC<AnimalSalesProps> = ({
   const [animalId, setAnimalId] = useState(initialAnimalId || '');
   const [buyerName, setBuyerName] = useState('');
   const [buyerPhone, setBuyerPhone] = useState('');
-  const [saleDate, setSaleDate] = useState('2026-09-28');
+  const [saleDate, setSaleDate] = useState(() => getTodayDateString());
   const [salePrice, setSalePrice] = useState<string>('300000');
   const [paidAmount, setPaidAmount] = useState<string>('300000');
   const [notes, setNotes] = useState('');
@@ -53,7 +53,7 @@ export const AnimalSales: React.FC<AnimalSalesProps> = ({
 
       setBuyerName('');
       setBuyerPhone('');
-      setSaleDate('2026-09-28');
+      setSaleDate(getTodayDateString());
       setSalePrice('280000');
       setPaidAmount('280000');
       setNotes('');

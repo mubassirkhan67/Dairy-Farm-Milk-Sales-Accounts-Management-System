@@ -25,15 +25,16 @@ import { PaymentModal } from './components/PaymentModal';
 import { GlobalSearch } from './components/GlobalSearch';
 import { OfflineIndicator } from './components/OfflineIndicator';
 import { AdminPasswordModal } from './components/AdminPasswordModal';
+import { getTodayDateString, getCurrentMonthString } from './utils/formatters';
 
 function AppContent() {
   const { requireAdmin } = useAuth();
   const [activeTab, setActiveTab] = useState<string>('dashboard');
   const [navParams, setNavParams] = useState<any>({});
 
-  // Global modals
+  // Global modals - standard calendar automatic today date
   const [saleModalOpen, setSaleModalOpen] = useState(false);
-  const [saleModalDate, setSaleModalDate] = useState('2026-09-28');
+  const [saleModalDate, setSaleModalDate] = useState(getTodayDateString());
   const [saleModalShopkeeperId, setSaleModalShopkeeperId] = useState<string | undefined>(undefined);
 
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
@@ -49,7 +50,7 @@ function AppContent() {
 
   const handleOpenSaleModal = (date?: string, shopkeeperId?: string) => {
     requireAdmin(() => {
-      setSaleModalDate(date || '2026-09-28');
+      setSaleModalDate(date || getTodayDateString());
       setSaleModalShopkeeperId(shopkeeperId);
       setSaleModalOpen(true);
     });
@@ -87,7 +88,7 @@ function AppContent() {
 
         {activeTab === 'daily-sales' && (
           <DailySales
-            initialDate={navParams?.date || '2026-09-28'}
+            initialDate={navParams?.date || getTodayDateString()}
             onOpenSaleModal={handleOpenSaleModal}
             onNavigateToBill={(skId) => handleNavigate('bill-generator', { shopkeeperId: skId })}
           />
@@ -124,7 +125,7 @@ function AppContent() {
         {activeTab === 'bill-generator' && (
           <BillGenerator
             initialShopkeeperId={navParams?.shopkeeperId}
-            initialMonth={navParams?.month || '2026-09'}
+            initialMonth={navParams?.month || getCurrentMonthString()}
             onBack={() => handleNavigate('dashboard')}
           />
         )}

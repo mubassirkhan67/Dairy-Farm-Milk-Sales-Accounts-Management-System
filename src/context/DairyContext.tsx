@@ -13,7 +13,7 @@ import {
 } from '../types';
 import { loadDatabase, saveDatabase, getInitialDatabase, importDatabaseBackup, exportDatabaseBackup } from '../services/storage';
 import { api, BackendStatus } from '../services/api';
-import { parseCleanNumber } from '../utils/formatters';
+import { parseCleanNumber, getTodayDateString } from '../utils/formatters';
 
 export interface ShopkeeperBalanceSummary {
   shopkeeperId: string;
@@ -214,7 +214,7 @@ export const DairyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   );
 
   const currentEffectiveRate = useMemo(() => {
-    const today = '2026-09-28';
+    const today = getTodayDateString();
     return getEffectiveRateForDate(today);
   }, [getEffectiveRateForDate]);
 
@@ -253,7 +253,7 @@ export const DairyProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   // Dashboard metrics calculator
   const getDashboardMetrics = useCallback(
-    (referenceDate: string = '2026-09-28'): DashboardMetrics => {
+    (referenceDate: string = getTodayDateString()): DashboardMetrics => {
       const targetMonth = referenceDate.substring(0, 7); // '2026-09'
 
       // Today's milk & sales

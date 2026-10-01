@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useDairy } from '../context/DairyContext';
 import { PaymentMethod } from '../types';
-import { formatCurrency, cleanNumericInput, parseCleanNumber } from '../utils/formatters';
+import { formatCurrency, cleanNumericInput, parseCleanNumber, getTodayDateString } from '../utils/formatters';
 import { X, Check, AlertCircle, Receipt } from 'lucide-react';
 
 interface PaymentModalProps {
@@ -16,19 +16,25 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   isOpen,
   onClose,
   initialShopkeeperId,
-  initialDate = '2026-09-28',
+  initialDate,
   onSuccess,
 }) => {
   const { shopkeepers, addPayment, getShopkeeperBalance, settings } = useDairy();
 
   const [shopkeeperId, setShopkeeperId] = useState(initialShopkeeperId || '');
-  const [paymentDate, setPaymentDate] = useState(initialDate);
+  const [paymentDate, setPaymentDate] = useState(() => initialDate || getTodayDateString());
   const [amount, setAmount] = useState<string>('');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('Cash');
   const [reference, setReference] = useState<string>('Cash Payment');
   const [notes, setNotes] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      setPaymentDate(initialDate || getTodayDateString());
+    }
+  }, [isOpen, initialDate]);
 
   useEffect(() => {
     if (initialShopkeeperId) {

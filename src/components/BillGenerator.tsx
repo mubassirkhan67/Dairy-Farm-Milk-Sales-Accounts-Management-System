@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useDairy } from '../context/DairyContext';
 import { useAuth } from '../context/AuthContext';
 import { MilkSale } from '../types';
-import { formatCurrency, formatDate, getMonthName, generateWhatsAppBillText, cleanNumericInput, parseCleanNumber } from '../utils/formatters';
+import { formatCurrency, formatDate, getMonthName, generateWhatsAppBillText, cleanNumericInput, parseCleanNumber, getCurrentMonthString } from '../utils/formatters';
 import { printElement, downloadPrintableHtml } from '../utils/printHelper';
 import {
   Printer,
@@ -30,16 +30,16 @@ interface BillGeneratorProps {
 
 export const BillGenerator: React.FC<BillGeneratorProps> = ({
   initialShopkeeperId,
-  initialMonth = '2026-09',
+  initialMonth,
   onBack,
 }) => {
   const { shopkeepers, milkSales, payments, settings, getShopkeeperBalance, updateMilkSale, deleteMilkSale } = useDairy();
-  const { can } = useAuth();
+  const { can, requireAdmin } = useAuth();
 
   const [selectedShopkeeperId, setSelectedShopkeeperId] = useState<string>(
     initialShopkeeperId || (shopkeepers[0]?.id ?? '')
   );
-  const [selectedMonth, setSelectedMonth] = useState<string>(initialMonth);
+  const [selectedMonth, setSelectedMonth] = useState<string>(() => initialMonth || getCurrentMonthString());
   const [editingSale, setEditingSale] = useState<MilkSale | null>(null);
   const [editQty, setEditQty] = useState('');
   const [editRate, setEditRate] = useState('');
@@ -133,15 +133,17 @@ export const BillGenerator: React.FC<BillGeneratorProps> = ({
     const rate = parseCleanNumber(editRate);
     const paid = parseCleanNumber(editPaid);
 
-    updateMilkSale(editingSale.id, {
-      sale_date: editDate || editingSale.sale_date,
-      shift: editShift,
-      quantity: qty,
-      rate: rate,
-      paid_amount: paid,
-      notes: editNotes,
+    requireAdmin(() => {
+      updateMilkSale(editingSale.id, {
+        sale_date: editDate || editingSale.sale_date,
+        shift: editShift,
+        quantity: qty,
+        rate: rate,
+        paid_amount: paid,
+        notes: editNotes,
+      });
+      setEditingSale(null);
     });
-    setEditingSale(null);
   };
 
   if (!currentShopkeeper) {
@@ -402,27 +404,27 @@ export const BillGenerator: React.FC<BillGeneratorProps> = ({
                         <div className="flex items-center justify-center gap-1">
                           <button
                             type="button"
-                            onClick={() => handleStartEdit(sale)}
+                            onClick={() => requireAdmin(() => handleStartEdit(sale))}
                             className="px-2 py-1 bg-amber-50 hover:bg-amber-100 text-amber-800 rounded font-medium text-[11px] flex items-center gap-1 border border-amber-200 transition-colors"
-                            title="Edit this delivery entry in monthly bill"
+                            title="Edit this delivery entry (Admin only)"
                           >
                             <Pencil className="w-3 h-3" />
                             <span>Edit</span>
                           </button>
-                          {can('delete_financial') && (
-                            <button
-                              type="button"
-                              onClick={() => {
+                          <button
+                            type="button"
+                            onClick={() => {
+                              requireAdmin(() => {
                                 if (window.confirm(`Delete milk delivery record on ${formatDate(sale.sale_date)}?`)) {
                                   deleteMilkSale(sale.id);
                                 }
-                              }}
-                              className="p-1 hover:bg-rose-100 text-neutral-400 hover:text-rose-600 rounded transition-colors"
-                              title="Delete Record"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          )}
+                              });
+                            }}
+                            className="p-1 hover:bg-rose-100 text-neutral-400 hover:text-rose-600 rounded transition-colors"
+                            title="Delete Record (Admin only)"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
                         </div>
                       </td>
                     </tr>

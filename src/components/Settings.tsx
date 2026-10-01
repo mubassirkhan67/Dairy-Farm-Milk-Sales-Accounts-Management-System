@@ -555,9 +555,6 @@ export const Settings: React.FC = () => {
               <KeyRound className="w-4 h-4 text-neutral-700" />
               <span>Change Admin Password</span>
             </h3>
-            <span className="text-[11px] text-neutral-400 font-mono">
-              Default password: <strong className="text-neutral-700">admin123</strong>
-            </span>
           </div>
 
           {passwordSuccess && (

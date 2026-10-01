@@ -54,8 +54,8 @@ export const Navbar: React.FC<NavbarProps> = ({
               onClick={() => setActiveTab('dashboard')}
               className="text-left group flex items-center gap-2.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 rounded-md"
             >
-              <div className="w-9 h-9 rounded-xl bg-emerald-800 text-white flex items-center justify-center font-bold text-lg shadow-sm border border-emerald-900/20">
-                🥛
+              <div className="w-9 h-9 rounded-xl bg-emerald-800 flex items-center justify-center shadow-sm border border-emerald-900/20 overflow-hidden shrink-0">
+                <img src="/cow-app-icon.png" alt="Dairy Cow" className="w-full h-full object-cover" />
               </div>
               <div className="flex flex-col">
                 <span className="text-base sm:text-lg font-extrabold tracking-tight text-neutral-900 group-hover:text-emerald-700 transition-colors leading-tight">

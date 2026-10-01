@@ -104,16 +104,6 @@ export const AdminPasswordModal: React.FC = () => {
             )}
           </div>
 
-          <div className="bg-neutral-50 rounded-xl p-3 border border-neutral-200/80 flex items-center justify-between text-[11px] text-neutral-600">
-            <span className="flex items-center gap-1.5 font-medium">
-              <KeyRound className="w-3.5 h-3.5 text-emerald-600" />
-              Default Password:
-            </span>
-            <code className="bg-white px-2 py-0.5 rounded border border-neutral-200 font-mono font-bold text-neutral-800">
-              admin123
-            </code>
-          </div>
-
           <div className="flex items-center justify-end gap-2.5 pt-2">
             <button
               type="button"

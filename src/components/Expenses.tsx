@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useDairy } from '../context/DairyContext';
 import { useAuth } from '../context/AuthContext';
 import { Expense, ExpenseCategory, PaymentMethod } from '../types';
-import { formatCurrency, formatDate, cleanNumericInput, parseCleanNumber } from '../utils/formatters';
+import { formatCurrency, formatDate, cleanNumericInput, parseCleanNumber, getTodayDateString, getCurrentMonthString } from '../utils/formatters';
 import {
   CircleDollarSign,
   Plus,
@@ -22,10 +22,10 @@ export const Expenses: React.FC = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
-  const [monthFilter, setMonthFilter] = useState<string>('2026-09');
+  const [monthFilter, setMonthFilter] = useState<string>(() => getCurrentMonthString());
 
   const [formData, setFormData] = useState({
-    expense_date: '2026-09-28',
+    expense_date: getTodayDateString(),
     category: 'Animal Feed' as ExpenseCategory,
     description: '',
     amount: 15000,

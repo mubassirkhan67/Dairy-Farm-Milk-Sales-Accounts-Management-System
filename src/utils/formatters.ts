@@ -106,3 +106,25 @@ export const parseCleanNumber = (val: string | number | undefined | null): numbe
   const n = parseFloat(cleaned);
   return isNaN(n) ? 0 : n;
 };
+
+/**
+ * Returns today's standard calendar date in YYYY-MM-DD format based on local time.
+ * Automatically updates when days change with the standard calendar.
+ */
+export const getTodayDateString = (): string => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = (now.getMonth() + 1).toString().padStart(2, '0');
+  const day = now.getDate().toString().padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+/**
+ * Returns the current calendar month in YYYY-MM format.
+ */
+export const getCurrentMonthString = (): string => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = (now.getMonth() + 1).toString().padStart(2, '0');
+  return `${year}-${month}`;
+};
